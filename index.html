@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的待办清单</title>
+    <style>
+        /* 全局样式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", sans-serif;
+        }
+
+        /* 页面背景 */
+        body {
+            background: linear-gradient(135deg, #e8f4f8 0%, #fdf2f8 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* 主容器 */
+        .todo-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #fff;
+            border: 4px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 8px 8px 0 #e0e0e0;
+            position: relative;
+        }
+
+        /* 标题样式 */
+        .todo-title {
+            text-align: center;
+            font-size: 28px;
+            font-family: "Comic Sans MS", "Marker Felt", "微软雅黑", sans-serif;
+            color: #3182ce;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 #bee3f8;
+            letter-spacing: 2px;
+        }
+
+        /* 输入区域 - 修改为水平布局，确保按钮和输入框高度一致 */
+        .input-area {
+            display: flex;
+            flex-direction: row; /* 改回水平布局 */
+            gap: 10px;
+            margin-bottom: 25px;
+            align-items: stretch; /* 关键：让子元素高度拉伸至一致 */
+        }
+
+        .task-input {
+            flex: 1; /* 输入框占满剩余宽度 */
+            padding: 12px 15px;
+            border: 3px solid #90cdf4;
+            border-radius: 4px;
+            font-size: 16px;
+            outline: none;
+            height: 100%; /* 高度自适应 */
+            min-height: 48px; /* 最小高度保证触控体验 */
+        }
+
+        /* 通用按钮样式 - 统一基础尺寸 */
+        .btn {
+            padding: 6px;
+            width: 32px;
+            height: 32px;
+            border: 2px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+            display: flex;   
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* 自定义勾/叉样式 */
+        .icon-text {
+            font-size: 18px;
+            display: block;
+        }
+        .check-text {
+            color: #48bb78;
+            text-shadow: 1px 1px 0 #38a169;
+        }
+        .cross-text {
+            color: #e53e3e;
+            text-shadow: 1px 1px 0 #c53030;
+        }
+
+        /* 自定义对勾/叉号样式（兼容） */
+        .check-icon::before {
+            content: '✔';
+            color: #48bb78;
+            text-shadow: 1px 1px 0 #38a169;
+            font-size: 18px;
+        }
+        .cross-icon::before {
+            content: '✖';
+            color: #e53e3e;
+            text-shadow: 1px 1px 0 #c53030;
+            font-size: 18px;
+        }
+
+        /* 添加按钮样式 - 关键修改：调整宽度、内边距和外边距 */
+        .add-btn {
+            background: #90cdf4;
+            color: #fff;
+            width: 70px; /* 关键修改：缩短按钮宽度，匹配总结按钮边距比例 */
+            height: 100%; /* 高度和输入框一致 */
+            min-height: 48px; /* 匹配输入框最小高度 */
+            padding: 0 8px; /* 关键修改：调整内边距，和生成今日总结按钮保持一致 */
+            margin: 0; /* 关键修改：重置外边距，通过input-area的gap控制间隔 */
+            font-size: 16px;
+            font-weight: normal;
+            flex-shrink: 0; /* 禁止按钮收缩 */
+        }
+        .add-btn:hover {
+            background: #4299e1;
+            transform: translate(1px, 1px);
+        }
+
+        /* 任务列表标题栏（标题+清空按钮+模式切换） */
+        .task-list-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .task-list-title {
+            font-size: 20px;
+            color: #2d3748;
+            border-bottom: 2px dashed #90cdf4;
+            padding-bottom: 5px;
+            margin-bottom: 0;
+        }
+
+        /* 清空列表按钮 - 基准样式 */
+        .clear-btn {
+            background: #fed7d7;
+            color: #c53030;
+            width: 100px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: bold; /* 修改：文字加粗 */
+            text-align: center;
+        }
+        .clear-btn:hover {
+            background: #fc8181;
+            transform: translate(1px, 1px);
+        }
+
+        /* 模式切换下拉框样式 */
+        .mode-select-container {
+            position: relative;
+            margin-left: 10px;
+        }
+        /* 模式切换按钮 - 统一和清空按钮样式 */
+        .mode-toggle-btn {
+            background: #90cdf4;
+            color: #fff;
+            border: 2px solid #333;
+            border-radius: 4px;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: bold; /* 修改：文字加粗 */
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            width: 100px;
+            height: 100%;
+        }
+        .mode-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: #fff;
+            border: 2px solid #333;
+            border-radius: 4px;
+            box-shadow: 3px 3px 0 #e0e0e0;
+            z-index: 100;
+            display: none;
+            min-width: 100px;
+        }
+        .mode-dropdown.show {
+            display: block;
+        }
+        /* 模式选项 */
+        .mode-option {
+            padding: 6px 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 12px;
+            font-weight: bold; /* 修改：文字加粗 */
+            text-align: center;
+        }
+        .mode-option:hover {
+            background: #e8f4f8;
+        }
+        .mode-option.active {
+            background: #90cdf4;
+            color: #fff;
+        }
+
+        /* 总结按钮组 */
+        .summary-btn-group {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .summary-btn {
+            background: #fbb6ce;
+            color: #2d3748;
+            width: auto;
+            padding: 8px 14px; /* 参考此内边距调整add-btn的padding */
+        }
+        .summary-btn:hover {
+            background: #f687b3;
+            transform: translate(1px, 1px);
+        }
+
+        /* 任务项样式 */
+        .task-item {
+            display: flex;
+            align-items: flex-start; 
+            justify-content: space-between;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+        }
+
+        /* 任务内容容器 */
+        .task-content {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            flex: 1;
+        }
+
+        /* 星标+任务文字容器 */
+        .task-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            width: 100%;
+        }
+
+        /* 星标按钮 */
+        .star-btn {
+            cursor: pointer;
+            font-size: 18px;
+            color: #ccc;
+            transition: color 0.2s;
+            position: relative;
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        .star-btn::before {
+            content: '★';
+            position: absolute;
+            top: 0;
+            left: 0;
+            font-size: 18px;
+            filter: blur(0.5px);
+            transform: scale(0.95);
+        }
+        .star-btn.active::before {
+            color: #ffe485;
+            text-shadow: 1px 1px 2px #f6ad55;
+        }
+
+        .task-text {
+            font-size: 16px;
+            color: #2d3748;
+            word-break: break-all;
+            flex: 1;
+            line-height: 1.4;
+        }
+
+        /* 编辑任务输入框样式 */
+        .task-edit-input {
+            font-size: 16px;
+            color: #2d3748;
+            word-break: break-all;
+            flex: 1;
+            padding: 4px 8px;
+            border: 2px solid #90cdf4;
+            border-radius: 4px;
+            outline: none;
+            min-height: 32px;
+        }
+
+        /* 编辑按钮样式 */
+        .edit-btn {
+            padding: 6px;
+            width: 32px;
+            height: 32px;
+            border: 2px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.2s;
+            white-space: nowrap;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: #e8f4f8;
+            color: #3182ce;
+            margin-left: 4px;
+            flex-shrink: 0;
+            margin-top: 0;
+        }
+        .edit-btn::before {
+            content: '✎';
+            display: block;
+            transform: scaleX(-1);
+            font-size: 16px;
+        }
+        .edit-btn.editing {
+            background: #90cdf4;
+            color: #fff;
+        }
+        .edit-btn:hover {
+            transform: translate(1px, 1px);
+            background: #90cdf4;
+            color: #fff;
+        }
+
+        /* 每日按钮样式 */
+        .daily-btn {
+            padding: 4px 8px;
+            border: 2px solid #90cdf4;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #3182ce;
+            background: #fff;
+            width: auto;
+            height: auto;
+            align-self: flex-start;
+            transition: all 0.2s;
+        }
+        .daily-btn.active {
+            background: #90cdf4;
+            color: #fff;
+        }
+        .daily-btn:hover {
+            transform: translate(1px, 1px);
+        }
+
+        /* 进行中标识 + 计时器 + 暂停按钮容器 */
+        .progress-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .progress-tag {
+            font-size: 12px;
+            color: #3182ce;
+            font-weight: bold;
+        }
+        .timer {
+            font-size: 12px;
+            color: #e53e3e;
+        }
+
+        /* 暂停/继续按钮 */
+        .pause-btn {
+            padding: 0;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-size: 16px;
+            color: #744210;
+            transition: all 0.2s;
+            width: auto;
+            height: auto;
+        }
+        .pause-btn:hover {
+            transform: scale(1.1);
+        }
+
+        /* 任务按钮容器 */
+        .task-btns {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+            width: auto;
+            justify-content: flex-end;
+            margin-left: 4px;
+        }
+
+        /* 开始按钮样式 */
+        .start-btn {
+            background: #c6f6d5;
+            color: transparent;
+        }
+
+        /* 完成/已完成按钮样式 */
+        .complete-btn {
+            background: #fefcbf;
+            color: transparent;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+        }
+        .complete-btn:hover {
+            background: #faf089;
+            transform: translate(1px, 1px);
+        }
+        .complete-btn:disabled {
+            background: #fefcbf;
+            cursor: not-allowed;
+            opacity: 0.7;
+            transform: none;
+        }
+
+        /* 删除按钮样式 */
+        .delete-btn {
+            background: #fed7d7;
+            color: transparent;
+        }
+        .delete-btn:hover {
+            background: #fc8181;
+            transform: translate(1px, 1px);
+        }
+
+        /* 今日总结区域 */
+        .summary-area {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 3px solid #90cdf4;
+        }
+        .summary-title {
+            font-size: 20px;
+            color: #2d3748;
+            margin-bottom: 15px;
+        }
+        .summary-text {
+            font-size: 16px;
+            color: #4a5568;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        /* 饼图容器 */
+        .chart-container {
+            width: 100%;
+            height: 250px;
+            margin-top: 10px;
+            margin-bottom: 20px;
+            display: block;
+        }
+        .chart-container.hidden {
+            display: none;
+        }
+
+        /* 日期样式 */
+        .date-text {
+            font-size: 16px;
+            font-family: "Comic Sans MS", "Marker Felt", "微软雅黑", sans-serif;
+            color: #3182ce;
+            text-shadow: 1px 1px 0 #bee3f8;
+            letter-spacing: 2px;
+            display: block;
+            text-align: right;
+            margin-top: 10px;
+        }
+
+        /* 自定义确认弹窗样式 */
+        .custom-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s ease;
+        }
+        .custom-modal.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background: #fff;
+            border: 4px solid #333;
+            border-radius: 8px;
+            padding: 25px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 8px 8px 0 #e0e0e0;
+            text-align: center;
+            font-family: "Comic Sans MS", "Marker Felt", "微软雅黑", sans-serif;
+        }
+        .modal-text {
+            font-size: 18px;
+            color: #2d3748;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .modal-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        .modal-btn {
+            padding: 10px 20px;
+            border: 3px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-family: "Comic Sans MS", "Marker Felt", "微软雅黑", sans-serif;
+        }
+        .confirm-btn {
+            background: #fed7d7;
+            color: #c53030;
+        }
+        .confirm-btn:hover {
+            background: #fc8181;
+            transform: translate(1px, 1px);
+        }
+        .cancel-btn {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        .cancel-btn:hover {
+            background: #9ae6b4;
+            transform: translate(1px, 1px);
+        }
+
+        /* 响应式适配 - 针对iPhone 12 Pro优化 */
+        @media (max-width: 375px) {
+            .todo-title {
+                font-size: 24px;
+            }
+            /* 核心按钮尺寸优化 */
+            .btn {
+                width: 28px;
+                height: 28px;
+                font-size: 14px;
+                padding: 0;
+            }
+            /* 输入区域响应式优化 */
+            .task-input {
+                font-size: 14px;
+                padding: 10px 12px;
+                min-height: 44px; /* 移动端标准触控高度 */
+            }
+            .add-btn {
+                width: 60px; /* 关键修改：响应式下缩短按钮宽度 */
+                min-height: 44px; /* 匹配输入框高度 */
+                padding: 0 6px; /* 关键修改：响应式下调整内边距 */
+                font-size: 14px;
+            }
+            /* 统一模式按钮和清空按钮响应式样式 */
+            .clear-btn, .mode-toggle-btn {
+                width: 80px;
+                padding: 6px 8px;
+                font-size: 10px;
+                font-weight: bold; /* 修改：响应式下也保持加粗 */
+            }
+            .mode-option {
+                padding: 6px 8px;
+                font-size: 10px;
+                font-weight: bold; /* 修改：响应式下也保持加粗 */
+            }
+            .complete-btn {
+                width: 28px;
+                height: 28px;
+            }
+            .pause-btn {
+                font-size: 14px;
+            }
+            .chart-container {
+                height: 200px;
+            }
+            .date-text {
+                font-size: 14px;
+            }
+            .icon-text {
+                font-size: 16px;
+            }
+            .daily-btn {
+                font-size: 10px;
+                padding: 3px 6px;
+            }
+            /* 编辑按钮响应式优化 */
+            .edit-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 14px;
+                padding: 0;
+                margin-left: 3px;
+            }
+            .edit-btn::before {
+                font-size: 14px;
+            }
+            .task-edit-input {
+                font-size: 14px;
+                padding: 3px 6px;
+                min-height: 28px;
+            }
+            /* 任务按钮容器响应式优化 */
+            .task-btns {
+                gap: 4px;
+                margin-left: 3px;
+            }
+            .modal-content {
+                padding: 20px;
+                width: 95%;
+            }
+            .modal-text {
+                font-size: 16px;
+            }
+            .modal-btn {
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+            /* 星标按钮小屏适配 */
+            .star-btn {
+                font-size: 16px;
+                width: 18px;
+                height: 18px;
+            }
+            .star-btn::before {
+                font-size: 16px;
+            }
+        }
+
+        /* 适配更小屏幕（如iPhone SE） */
+        @media (max-width: 320px) {
+            /* 输入区域超小屏优化 */
+            .task-input {
+                min-height: 40px;
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+            .add-btn {
+                width: 55px; /* 关键修改：超小屏下进一步缩短按钮宽度 */
+                min-height: 40px;
+                font-size: 13px;
+                padding: 0 5px; /* 关键修改：超小屏下调整内边距 */
+            }
+            
+            .task-btns {
+                gap: 3px;
+                margin-left: 2px;
+            }
+            .edit-btn {
+                width: 26px;
+                height: 26px;
+                margin-left: 2px;
+            }
+            .complete-btn {
+                width: 26px;
+                height: 26px;
+            }
+            .btn {
+                width: 26px;
+                height: 26px;
+                font-size: 12px;
+            }
+            /* 更小屏幕下统一按钮宽度 */
+            .clear-btn, .mode-toggle-btn {
+                width: 70px;
+                font-size: 9px;
+                font-weight: bold; /* 修改：超小屏下也保持加粗 */
+            }
+            .mode-option {
+                font-size: 9px;
+                font-weight: bold; /* 修改：超小屏下也保持加粗 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="todo-container">
+        <h1 class="todo-title">Today's To-do-list</h1>
+
+        <!-- 输入区域 -->
+        <div class="input-area">
+            <input type="text" class="task-input" placeholder="输入新任务（最多20字）..." maxlength="20">
+            <button class="btn add-btn">添加</button>
+        </div>
+
+        <!-- 任务列表标题栏（标题+清空按钮+模式切换） -->
+        <div class="task-list-header">
+            <h2 class="task-list-title">任务列表</h2>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <!-- 模式切换下拉框 -->
+                <div class="mode-select-container">
+                    <button class="mode-toggle-btn">
+                        <span>基础模式</span>
+                        <span>🔻</span>
+                    </button>
+                    <div class="mode-dropdown">
+                        <div class="mode-option active" data-mode="basic">基础模式</div>
+                        <div class="mode-option" data-mode="time">耗时模式</div>
+                        <div class="mode-option" data-mode="daily">每日模式</div>
+                    </div>
+                </div>
+                <button class="btn clear-btn">清空列表</button>
+            </div>
+        </div>
+        
+        <!-- 任务列表区域 -->
+        <div class="task-list">
+            <!-- 任务项通过JS动态添加 -->
+        </div>
+
+        <!-- 总结按钮组 -->
+        <div class="summary-btn-group">
+            <button class="btn summary-btn">生成今日总结</button>
+        </div>
+
+        <!-- 今日总结区域 -->
+        <div class="summary-area">
+            <h2 class="summary-title">今日总结</h2>
+            <p class="summary-text">请先完成任务，再生成总结</p>
+            <!-- 饼图容器 -->
+            <div class="chart-container">
+                <canvas id="taskChart"></canvas>
+            </div>
+            <div class="date-text" id="currentDate"></div>
+        </div>
+    </div>
+
+    <!-- 清空列表确认弹窗 -->
+    <div class="custom-modal" id="clearConfirmModal">
+        <div class="modal-content">
+            <p class="modal-text">确定要清空所有任务吗？此操作不可恢复！</p>
+            <div class="modal-buttons">
+                <button class="modal-btn confirm-btn">确定</button>
+                <button class="modal-btn cancel-btn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 模式切换确认弹窗 -->
+    <div class="custom-modal" id="modeChangeModal">
+        <div class="modal-content">
+            <p class="modal-text" id="modeChangeText">确定要切换为基础模式吗？此操作将清空任务列表</p>
+            <div class="modal-buttons">
+                <button class="modal-btn confirm-btn" id="modeConfirmBtn">确定</button>
+                <button class="modal-btn cancel-btn" id="modeCancelBtn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. 获取核心DOM元素
+        const taskInput = document.querySelector('.task-input');
+        const addButton = document.querySelector('.add-btn');
+        const taskList = document.querySelector('.task-list');
+        const summaryButton = document.querySelector('.summary-btn');
+        const summaryText = document.querySelector('.summary-text');
+        const taskChart = document.getElementById('taskChart');
+        const ctx = taskChart.getContext('2d');
+        const clearButton = document.querySelector('.clear-btn');
+        const dateElement = document.getElementById('currentDate');
+        const chartContainer = document.querySelector('.chart-container');
+        const modeToggleBtn = document.querySelector('.mode-toggle-btn');
+        const modeDropdown = document.querySelector('.mode-dropdown');
+        const modeOptions = document.querySelectorAll('.mode-option');
+        
+        // 弹窗相关元素
+        const clearConfirmModal = document.getElementById('clearConfirmModal');
+        const modalConfirmBtn = document.querySelector('.confirm-btn');
+        const modalCancelBtn = document.querySelector('.cancel-btn');
+        const modeChangeModal = document.getElementById('modeChangeModal');
+        const modeChangeText = document.getElementById('modeChangeText');
+        const modeConfirmBtn = document.getElementById('modeConfirmBtn');
+        const modeCancelBtn = document.getElementById('modeCancelBtn');
+        
+        // 全局状态
+        let targetMode = '';
+        let currentMode = 'basic';
+        const completedTasks = [];
+        const dailyTasks = [];
+        const MAX_TASK_LENGTH = 20;
+
+        // 初始化
+        initCurrentDate();
+        loadTasksFromLocalStorage();
+        initModeToggle();
+        initModalEvents();
+        initModeChangeModalEvents();
+
+        // 绑定事件
+        addButton.addEventListener('click', addNewTask);
+        taskInput.addEventListener('keypress', (e) => e.key === 'Enter' && addNewTask());
+        clearButton.addEventListener('click', showClearConfirmModal);
+        summaryButton.addEventListener('click', generateSummary);
+
+        // --------------------------
+        // 清空列表弹窗事件
+        // --------------------------
+        function initModalEvents() {
+            // 确认清空
+            modalConfirmBtn.addEventListener('click', () => {
+                clearTaskList();
+                clearConfirmModal.classList.remove('show');
+            });
+
+            // 取消清空
+            modalCancelBtn.addEventListener('click', () => {
+                clearConfirmModal.classList.remove('show');
+            });
+
+            // 点击弹窗外层关闭
+            clearConfirmModal.addEventListener('click', (e) => {
+                if (e.target === clearConfirmModal) {
+                    clearConfirmModal.classList.remove('show');
+                }
+            });
+        }
+
+        // --------------------------
+        // 模式切换弹窗事件
+        // --------------------------
+        function initModeChangeModalEvents() {
+            // 确认切换模式
+            modeConfirmBtn.addEventListener('click', () => {
+                const prevMode = currentMode;
+                currentMode = targetMode;
+                const modeText = {
+                    time: '耗时模式',
+                    basic: '基础模式',
+                    daily: '每日模式'
+                }[currentMode];
+                modeToggleBtn.querySelector('span:first-child').textContent = modeText;
+                
+                // 更新下拉框选中状态
+                modeOptions.forEach(opt => {
+                    opt.classList.remove('active');
+                    if (opt.dataset.mode === targetMode) {
+                        opt.classList.add('active');
+                    }
+                });
+
+                // 模式切换逻辑
+                handleModeSwitch(prevMode, currentMode);
+                
+                // 初始化今日总结
+                initSummary();
+                // 控制饼图显示
+                chartContainer.classList.toggle('hidden', currentMode === 'basic' || currentMode === 'daily');
+                
+                // 隐藏弹窗、关闭下拉框
+                modeChangeModal.classList.remove('show');
+                modeDropdown.classList.remove('show');
+            });
+
+            // 取消切换模式
+            modeCancelBtn.addEventListener('click', () => {
+                modeChangeModal.classList.remove('show');
+            });
+
+            // 点击弹窗外层关闭
+            modeChangeModal.addEventListener('click', (e) => {
+                if (e.target === modeChangeModal) {
+                    modeChangeModal.classList.remove('show');
+                }
+            });
+        }
+
+        // --------------------------
+        // 模式切换核心逻辑
+        // --------------------------
+        function handleModeSwitch(prevMode, newMode) {
+            // 1. 从每日模式切换到其他模式
+            if (prevMode === 'daily' && newMode !== 'daily') {
+                const allTasks = taskList.querySelectorAll('.task-item');
+                allTasks.forEach(task => {
+                    const isDaily = task.dataset.isDaily === 'true';
+                    if (isDaily) {
+                        // 点亮每日按钮：隐藏任务
+                        task.style.display = 'none';
+                    } else {
+                        // 未点亮每日按钮：删除任务
+                        taskList.removeChild(task);
+                        // 从已完成列表移除
+                        const taskContent = task.querySelector('.task-text').textContent;
+                        const index = completedTasks.findIndex(item => item.name === taskContent);
+                        if (index !== -1) completedTasks.splice(index, 1);
+                    }
+                });
+            }
+            // 2. 从其他模式切换到每日模式
+            else if (prevMode !== 'daily' && newMode === 'daily') {
+                // 清空当前显示的任务（保留每日任务）
+                taskList.innerHTML = '';
+                // 重新加载每日任务
+                loadDailyTasks();
+            }
+            // 3. 其他模式间切换（清空列表）
+            else {
+                clearTaskList(false);
+            }
+        }
+
+        // --------------------------
+        // 显示弹窗
+        // --------------------------
+        function showClearConfirmModal() {
+            clearConfirmModal.classList.add('show');
+        }
+        function showModeChangeModal(mode) {
+            targetMode = mode;
+            const modeName = {
+                time: '耗时',
+                basic: '基础',
+                daily: '每日'
+            }[mode];
+            modeChangeText.textContent = `确定要切换为${modeName}模式吗？此操作将清空任务列表`;
+            modeChangeModal.classList.add('show');
+        }
+
+        // --------------------------
+        // 模式切换初始化
+        // --------------------------
+        function initModeToggle() {
+            // 切换下拉框显示/隐藏
+            modeToggleBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                modeDropdown.classList.toggle('show');
+            });
+
+            // 点击其他区域关闭下拉框
+            document.addEventListener('click', (e) => {
+                if (!modeDropdown.contains(e.target) && !modeToggleBtn.contains(e.target)) {
+                    modeDropdown.classList.remove('show');
+                }
+            });
+
+            // 选择模式
+            modeOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    const selectedMode = option.dataset.mode;
+                    // 选择当前模式，直接关闭下拉框
+                    if (selectedMode === currentMode) {
+                        modeDropdown.classList.remove('show');
+                        return;
+                    }
+                    
+                    // 检查是否有任务
+                    const hasTasks = taskList.querySelectorAll('.task-item').length > 0;
+                    if (hasTasks) {
+                        showModeChangeModal(selectedMode);
+                    } else {
+                        // 无任务时直接切换
+                        const prevMode = currentMode;
+                        currentMode = selectedMode;
+                        const modeText = {
+                            time: '耗时模式',
+                            basic: '基础模式',
+                            daily: '每日模式'
+                        }[currentMode];
+                        modeToggleBtn.querySelector('span:first-child').textContent = modeText;
+                        
+                        // 更新选中状态
+                        modeOptions.forEach(opt => opt.classList.remove('active'));
+                        option.classList.add('active');
+                        
+                        // 处理模式切换
+                        handleModeSwitch(prevMode, currentMode);
+                        // 初始化总结
+                        initSummary();
+                        // 控制饼图显示
+                        chartContainer.classList.toggle('hidden', currentMode === 'basic' || currentMode === 'daily');
+                        
+                        // 关闭下拉框
+                        modeDropdown.classList.remove('show');
+                    }
+                });
+            });
+        }
+
+        // --------------------------
+        // 初始化总结文本
+        // --------------------------
+        function initSummary() {
+            if (currentMode === 'basic') {
+                summaryText.textContent = '今日还未完成任何任务，加油！';
+            } else if (currentMode === 'daily') {
+                summaryText.textContent = '今日还未完成任何每日任务，加油！';
+            } else {
+                summaryText.textContent = '今日还未完成任何任务';
+            }
+            ctx.clearRect(0, 0, taskChart.width, taskChart.height);
+        }
+
+        // --------------------------
+        // 本地存储
+        // --------------------------
+        function saveTasksToLocalStorage() {
+            // 保存普通任务
+            const tasks = [];
+            const taskItems = taskList.querySelectorAll('.task-item');
+            taskItems.forEach(item => {
+                const taskText = item.querySelector('.task-text')?.textContent || item.querySelector('.task-edit-input')?.value;
+                const isCompleted = item.dataset.completed === 'true';
+                const isStarred = item.dataset.starred === 'true';
+                const isDaily = item.dataset.isDaily === 'true';
+                
+                tasks.push({
+                    content: taskText,
+                    completed: isCompleted,
+                    starred: isStarred,
+                    isDaily: isDaily
+                });
+            });
+            
+            // 保存每日任务
+            localStorage.setItem('todoList', JSON.stringify(tasks));
+            localStorage.setItem('dailyTasks', JSON.stringify(dailyTasks));
+        }
+
+        function loadTasksFromLocalStorage() {
+            // 加载每日任务
+            const savedDailyTasks = localStorage.getItem('dailyTasks');
+            if (savedDailyTasks) {
+                dailyTasks.push(...JSON.parse(savedDailyTasks));
+            }
+
+            // 加载普通任务
+            const savedTasks = localStorage.getItem('todoList');
+            if (!savedTasks) return;
+            
+            const tasks = JSON.parse(savedTasks);
+            tasks.forEach(task => {
+                createTaskElement(task);
+            });
+        }
+
+        // 加载每日任务
+        function loadDailyTasks() {
+            dailyTasks.forEach(task => {
+                createTaskElement({
+                    content: task.content,
+                    completed: task.completed || false,
+                    starred: task.starred || false,
+                    isDaily: true
+                });
+            });
+        }
+
+        // --------------------------
+        // 创建任务元素
+        // --------------------------
+        function createTaskElement(task) {
+            const taskItem = document.createElement('div');
+            taskItem.className = 'task-item';
+            taskItem.dataset.completed = task.completed ? 'true' : 'false';
+            taskItem.dataset.starred = task.starred ? 'true' : 'false';
+            taskItem.dataset.isDaily = task.isDaily ? 'true' : 'false';
+            // 每日模式外的每日任务默认隐藏
+            if (currentMode !== 'daily' && task.isDaily) {
+                taskItem.style.display = 'none';
+            }
+
+            const taskContentWrap = document.createElement('div');
+            taskContentWrap.className = 'task-content';
+
+            const taskHeader = document.createElement('div');
+            taskHeader.className = 'task-header';
+
+            // 星标按钮
+            const starBtn = document.createElement('span');
+            starBtn.className = 'star-btn';
+            if (task.starred) starBtn.classList.add('active');
+            taskHeader.appendChild(starBtn);
+
+            // 任务文字
+            const taskText = document.createElement('span');
+            taskText.className = 'task-text';
+            taskText.textContent = task.content;
+            if (task.completed) {
+                taskText.style.textDecoration = 'line-through';
+                taskText.style.color = '#718096';
+            }
+            taskHeader.appendChild(taskText);
+
+            // 编辑按钮
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-btn';
+            taskHeader.appendChild(editBtn);
+
+            // 编辑按钮事件
+            editBtn.addEventListener('click', () => {
+                if (!editBtn.classList.contains('editing')) {
+                    // 切换为编辑状态
+                    editBtn.classList.add('editing');
+                    
+                    // 创建输入框
+                    const editInput = document.createElement('input');
+                    editInput.type = 'text';
+                    editInput.className = 'task-edit-input';
+                    editInput.value = taskText.textContent;
+                    editInput.maxLength = MAX_TASK_LENGTH;
+                    
+                    // 替换文本为输入框
+                    taskHeader.replaceChild(editInput, taskText);
+                    editInput.focus();
+                    
+                    // 回车确认编辑
+                    editInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            finishEdit(editInput, taskText, editBtn, taskItem, task);
+                        }
+                    });
+                } else {
+                    // 完成编辑
+                    const editInput = taskHeader.querySelector('.task-edit-input');
+                    if (editInput) {
+                        finishEdit(editInput, taskText, editBtn, taskItem, task);
+                    }
+                }
+            });
+
+            taskContentWrap.appendChild(taskHeader);
+
+            // 每日模式：添加每日按钮
+            if (currentMode === 'daily') {
+                const dailyBtn = document.createElement('button');
+                dailyBtn.className = `daily-btn ${task.isDaily ? 'active' : ''}`;
+                dailyBtn.textContent = '每日';
+                taskContentWrap.appendChild(dailyBtn);
+
+                // 每日按钮事件
+                dailyBtn.addEventListener('click', () => {
+                    dailyBtn.classList.toggle('active');
+                    const isDaily = dailyBtn.classList.contains('active');
+                    taskItem.dataset.isDaily = isDaily;
+                    
+                    // 更新每日任务列表
+                    const taskIndex = dailyTasks.findIndex(item => item.content === task.content);
+                    if (isDaily) {
+                        if (taskIndex === -1) {
+                            dailyTasks.push({
+                                content: task.content,
+                                completed: task.completed,
+                                starred: task.starred
+                            });
+                        }
+                    } else {
+                        if (taskIndex !== -1) {
+                            dailyTasks.splice(taskIndex, 1);
+                        }
+                    }
+                    saveTasksToLocalStorage();
+                });
+            }
+
+            // 按钮容器
+            const taskBtns = document.createElement('div');
+            taskBtns.className = 'task-btns';
+
+            // 完成/开始按钮
+            if (task.completed) {
+                // 已完成：显示✔按钮
+                const completeBtn = document.createElement('button');
+                completeBtn.className = 'btn complete-btn';
+                completeBtn.disabled = true;
+                completeBtn.style.cursor = 'not-allowed';
+                completeBtn.style.opacity = '0.7';
+                // 添加✔符号
+                const checkText = document.createElement('span');
+                checkText.className = 'icon-text check-text';
+                checkText.textContent = '✔';
+                completeBtn.appendChild(checkText);
+                taskBtns.appendChild(completeBtn);
+                
+                // 记录已完成任务
+                const taskIndex = completedTasks.findIndex(item => item.name === task.content);
+                if (taskIndex === -1) {
+                    completedTasks.push({
+                        name: task.content,
+                        time: 0
+                    });
+                }
+            } else {
+                // 未完成：显示✔按钮
+                const startBtn = document.createElement('button');
+                startBtn.className = 'btn start-btn';
+                // 添加✔符号
+                const checkText = document.createElement('span');
+                checkText.className = 'icon-text check-text';
+                checkText.textContent = '✔';
+                startBtn.appendChild(checkText);
+                taskBtns.appendChild(startBtn);
+                
+                // 绑定按钮事件
+                if (currentMode === 'time') {
+                    bindStartButtonEvent(startBtn, taskItem, taskText, taskContentWrap, taskBtns, task.content);
+                } else {
+                    // 基础/每日模式：直接完成
+                    startBtn.onclick = function() {
+                        taskText.style.textDecoration = 'line-through';
+                        taskText.style.color = '#718096';
+                        taskItem.dataset.completed = 'true';
+                        
+                        taskBtns.removeChild(this);
+                        const completeBtn = document.createElement('button');
+                        completeBtn.className = 'btn complete-btn';
+                        completeBtn.disabled = true;
+                        completeBtn.style.cursor = 'not-allowed';
+                        completeBtn.style.opacity = '0.7';
+                        // 添加✔符号
+                        const checkText = document.createElement('span');
+                        checkText.className = 'icon-text check-text';
+                        checkText.textContent = '✔';
+                        completeBtn.appendChild(checkText);
+                        taskBtns.insertBefore(completeBtn, taskBtns.firstChild);
+                        
+                        const taskIndex = completedTasks.findIndex(item => item.name === task.content);
+                        if (taskIndex === -1) {
+                            completedTasks.push({
+                                name: task.content,
+                                time: 0
+                            });
+                        }
+                        
+                        moveCompletedTaskToBottom(taskItem);
+                        saveTasksToLocalStorage();
+                        generateSummary();
+                    };
+                }
+            }
+
+            // 删除按钮：显示✖符号
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn delete-btn';
+            const crossText = document.createElement('span');
+            crossText.className = 'icon-text cross-text';
+            crossText.textContent = '✖';
+            deleteBtn.appendChild(crossText);
+            taskBtns.appendChild(deleteBtn);
+
+            // 删除按钮事件
+            deleteBtn.addEventListener('click', () => {
+                taskList.removeChild(taskItem);
+                const taskContent = task.content || taskItem.querySelector('.task-text').textContent || taskItem.querySelector('.task-edit-input')?.value;
+                // 从已完成列表移除
+                const index = completedTasks.findIndex(item => item.name === taskContent);
+                if (index !== -1) completedTasks.splice(index, 1);
+                // 从每日任务列表移除
+                const dailyIndex = dailyTasks.findIndex(item => item.content === taskContent);
+                if (dailyIndex !== -1) dailyTasks.splice(dailyIndex, 1);
+                saveTasksToLocalStorage();
+                generateSummary();
+            });
+
+            // 星标按钮事件
+            starBtn.addEventListener('click', () => {
+                if (taskItem.dataset.starred === 'false') {
+                    starBtn.classList.add('active');
+                    taskItem.dataset.starred = 'true';
+                    taskList.insertBefore(taskItem, taskList.firstChild);
+                } else {
+                    starBtn.classList.remove('active');
+                    taskItem.dataset.starred = 'false';
+                    reorderTasks();
+                }
+                saveTasksToLocalStorage();
+            });
+
+            // 组装任务元素
+            taskItem.appendChild(taskContentWrap);
+            taskItem.appendChild(taskBtns);
+            
+            // 插入任务
+            if (task.starred) {
+                taskList.insertBefore(taskItem, taskList.firstChild);
+            } else {
+                insertNewTaskToTop(taskItem);
+            }
+        }
+
+        // --------------------------
+        // 完成编辑辅助函数
+        // --------------------------
+        function finishEdit(editInput, taskText, editBtn, taskItem, originalTask) {
+            const newContent = editInput.value.trim();
+            if (!newContent) {
+                alert('任务内容不能为空！');
+                editInput.focus();
+                return;
+            }
+            if (newContent.length > MAX_TASK_LENGTH) {
+                alert(`任务文字不能超过${MAX_TASK_LENGTH}字！`);
+                editInput.focus();
+                return;
+            }
+
+            // 更新任务文字
+            taskText.textContent = newContent;
+            if (taskItem.dataset.completed === 'true') {
+                taskText.style.textDecoration = 'line-through';
+                taskText.style.color = '#718096';
+            }
+            
+            // 替换输入框为文本
+            editInput.parentElement.replaceChild(taskText, editInput);
+            
+            // 恢复按钮状态
+            editBtn.classList.remove('editing');
+            
+            // 更新已完成任务列表中的任务名
+            const oldContent = originalTask.content;
+            const completedIndex = completedTasks.findIndex(item => item.name === oldContent);
+            if (completedIndex !== -1) {
+                completedTasks[completedIndex].name = newContent;
+            }
+            
+            // 更新每日任务列表中的任务名
+            const dailyIndex = dailyTasks.findIndex(item => item.content === oldContent);
+            if (dailyIndex !== -1) {
+                dailyTasks[dailyIndex].content = newContent;
+            }
+            
+            // 更新原始任务对象
+            originalTask.content = newContent;
+            
+            // 保存到本地存储
+            saveTasksToLocalStorage();
+            
+            // 更新总结
+            generateSummary();
+        }
+
+        // --------------------------
+        // 添加新任务
+        // --------------------------
+        function addNewTask() {
+            const taskContent = taskInput.value.trim();
+            if (!taskContent) {
+                alert('请输入有效的任务内容！');
+                return;
+            }
+            if (taskContent.length > MAX_TASK_LENGTH) {
+                alert(`任务文字不能超过${MAX_TASK_LENGTH}字！`);
+                return;
+            }
+
+            // 创建任务
+            createTaskElement({
+                content: taskContent,
+                completed: false,
+                starred: false,
+                isDaily: false
+            });
+
+            taskInput.value = '';
+            saveTasksToLocalStorage();
+        }
+
+        // --------------------------
+        // 绑定开始按钮事件（耗时模式）
+        // --------------------------
+        function bindStartButtonEvent(startBtn, taskItem, taskText, taskContentWrap, taskBtns, taskContent) {
+            let timer = null;
+            let startTime = null;
+            let pauseTime = 0;
+            let isPaused = false;
+            let progressContainer = null;
+            let progressTag = null;
+            let timerElement = null;
+            let pauseBtn = null;
+            let completeBtn = null;
+
+            startBtn.addEventListener('click', () => {
+                startTime = Date.now();
+                pauseTime = 0;
+                isPaused = false;
+
+                // 替换为完成按钮
+                taskBtns.removeChild(startBtn);
+                completeBtn = document.createElement('button');
+                completeBtn.className = 'btn complete-btn';
+                const checkText = document.createElement('span');
+                checkText.className = 'icon-text check-text';
+                checkText.textContent = '✔';
+                completeBtn.appendChild(checkText);
+                taskBtns.insertBefore(completeBtn, taskBtns.firstChild);
+
+                // 创建进度容器
+                progressContainer = document.createElement('div');
+                progressContainer.className = 'progress-container';
+
+                progressTag = document.createElement('span');
+                progressTag.className = 'progress-tag';
+                progressTag.textContent = '进行中';
+                progressContainer.appendChild(progressTag);
+
+                timerElement = document.createElement('span');
+                timerElement.className = 'timer';
+                timerElement.textContent = '00:00';
+                progressContainer.appendChild(timerElement);
+
+                // 暂停按钮
+                pauseBtn = document.createElement('button');
+                pauseBtn.className = 'pause-btn';
+                pauseBtn.textContent = '⛔';
+                progressContainer.appendChild(pauseBtn);
+
+                taskContentWrap.appendChild(progressContainer);
+
+                // 启动计时器
+                updateTimer();
+                timer = setInterval(updateTimer, 1000);
+
+                // 暂停/继续功能
+                pauseBtn.addEventListener('click', () => {
+                    if (!isPaused) {
+                        isPaused = true;
+                        pauseTime += Date.now() - startTime;
+                        clearInterval(timer);
+                        pauseBtn.textContent = '▶️';
+                        progressTag.textContent = '已暂停';
+                    } else {
+                        isPaused = false;
+                        startTime = Date.now();
+                        timer = setInterval(updateTimer, 1000);
+                        pauseBtn.textContent = '⛔';
+                        progressTag.textContent = '进行中';
+                    }
+                });
+
+                // 完成任务事件
+                completeBtn.addEventListener('click', () => {
+                    clearInterval(timer);
+
+                    // 标记完成
+                    taskText.style.textDecoration = 'line-through';
+                    taskText.style.color = '#718096';
+                    taskItem.dataset.completed = 'true';
+
+                    // 计算耗时
+                    let totalMs = isPaused ? pauseTime : pauseTime + (Date.now() - startTime);
+                    const totalSeconds = Math.floor(totalMs / 1000);
+                    const finalMinutes = Math.floor(totalSeconds / 60);
+                    const finalSeconds = totalSeconds % 60;
+                    const formatFinalTime = `${finalMinutes.toString().padStart(2, '0')}:${finalSeconds.toString().padStart(2, '0')}`;
+                    const totalMinutes = (totalSeconds / 60).toFixed(1);
+
+                    // 更新显示
+                    completeBtn.disabled = true;
+                    completeBtn.style.cursor = 'not-allowed';
+                    completeBtn.style.opacity = '0.7';
+                    
+                    progressContainer.removeChild(pauseBtn);
+                    progressContainer.removeChild(progressTag);
+                    timerElement.textContent = `耗时 ${formatFinalTime}`;
+
+                    // 存储任务
+                    const taskIndex = completedTasks.findIndex(item => item.name === taskContent);
+                    if (taskIndex === -1) {
+                        completedTasks.push({
+                            name: taskContent,
+                            time: parseFloat(totalMinutes),
+                            timeFormatted: formatFinalTime
+                        });
+                    } else {
+                        completedTasks[taskIndex].time = parseFloat(totalMinutes);
+                        completedTasks[taskIndex].timeFormatted = formatFinalTime;
+                    }
+
+                    // 移到列表底部
+                    moveCompletedTaskToBottom(taskItem);
+                    saveTasksToLocalStorage();
+                    generateSummary();
+                });
+            });
+
+            // 更新计时器
+            function updateTimer() {
+                if (isPaused) return;
+                const elapsedMs = pauseTime + (Date.now() - startTime);
+                const elapsedSeconds = Math.floor(elapsedMs / 1000);
+                const minutes = Math.floor(elapsedSeconds / 60);
+                const seconds = elapsedSeconds % 60;
+                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+
+        // --------------------------
+        // 清空列表
+        // --------------------------
+        function clearTaskList(clearDaily = true) {
+            // 停止所有计时器
+            const allTasks = taskList.querySelectorAll('.task-item');
+            allTasks.forEach(task => {
+                const timer = task.querySelector('.timer');
+                if (timer) {
+                    const intervalId = timer.dataset.intervalId;
+                    if (intervalId) clearInterval(intervalId);
+                }
+            });
+
+            // 清空显示
+            taskList.innerHTML = '';
+            completedTasks.length = 0;
+            // 可选清空每日任务
+            if (clearDaily) dailyTasks.length = 0;
+            // 初始化总结
+            initSummary();
+            // 清除本地存储
+            localStorage.removeItem('todoList');
+            if (clearDaily) localStorage.removeItem('dailyTasks');
+            
+            // 控制饼图显示
+            chartContainer.classList.toggle('hidden', currentMode === 'basic' || currentMode === 'daily');
+        }
+
+        // --------------------------
+        // 初始化日期
+        // --------------------------
+        function initCurrentDate() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            dateElement.textContent = `${year}/${month}/${day}`;
+        }
+
+        // --------------------------
+        // 辅助函数
+        // --------------------------
+        function insertNewTaskToTop(newTask) {
+            const uncompletedTasks = taskList.querySelectorAll('.task-item[data-completed="false"]');
+            if (uncompletedTasks.length > 0) {
+                let firstNonStarredUncompleted = null;
+                for (let task of uncompletedTasks) {
+                    if (task.dataset.starred === 'false') {
+                        firstNonStarredUncompleted = task;
+                        break;
+                    }
+                }
+                if (firstNonStarredUncompleted) {
+                    taskList.insertBefore(newTask, firstNonStarredUncompleted);
+                } else {
+                    taskList.insertBefore(newTask, uncompletedTasks[uncompletedTasks.length]);
+                }
+            } else {
+                taskList.insertBefore(newTask, taskList.firstChild);
+            }
+        }
+
+        function moveCompletedTaskToBottom(completedTask) {
+            taskList.removeChild(completedTask);
+            taskList.appendChild(completedTask);
+        }
+
+        function reorderTasks() {
+            const allTasks = Array.from(taskList.querySelectorAll('.task-item'));
+            taskList.innerHTML = '';
+            
+            const starredUncompleted = allTasks.filter(t => t.dataset.starred === 'true' && t.dataset.completed === 'false');
+            const normalUncompleted = allTasks.filter(t => t.dataset.starred === 'false' && t.dataset.completed === 'false');
+            const completed = allTasks.filter(t => t.dataset.completed === 'true');
+
+            starredUncompleted.forEach(t => taskList.appendChild(t));
+            normalUncompleted.forEach(t => taskList.appendChild(t));
+            completed.forEach(t => taskList.appendChild(t));
+            
+            saveTasksToLocalStorage();
+        }
+
+        // --------------------------
+        // 生成今日总结
+        // --------------------------
+        function generateSummary() {
+            if (completedTasks.length === 0) {
+                initSummary();
+                return;
+            }
+
+            if (currentMode === 'basic' || currentMode === 'daily') {
+                const totalCompleted = completedTasks.length;
+                const tip = currentMode === 'daily' ? '每日' : '';
+                summaryText.textContent = `今天完成了${totalCompleted}件${tip}事，你已经很棒啦`;
+                ctx.clearRect(0, 0, taskChart.width, taskChart.height);
+            } else {
+                const totalCompleted = completedTasks.length;
+                const totalTime = completedTasks.reduce((sum, task) => sum + task.time, 0).toFixed(1);
+                summaryText.textContent = `今日完成了${totalCompleted}件事，共计耗时${totalTime}分钟`;
+                drawPieChart();
+            }
+            
+            chartContainer.classList.toggle('hidden', currentMode === 'basic' || currentMode === 'daily');
+        }
+
+        // --------------------------
+        // 绘制饼图
+        // --------------------------
+        function drawPieChart() {
+            taskChart.width = taskChart.parentElement.clientWidth;
+            taskChart.height = taskChart.parentElement.clientHeight;
+            ctx.clearRect(0, 0, taskChart.width, taskChart.height);
+
+            const colors = [
+                '#90cdf4', '#fbb6ce', '#c6f6d5', '#fefcbf', '#fed7d7',
+                '#82BAFF', '#FFDDAF', '#FFC1E9', '#C3E88D', '#89DDFF'
+            ];
+
+            const totalTime = completedTasks.reduce((sum, task) => sum + task.time, 0);
+            if (totalTime === 0) return;
+            
+            let startAngle = 0;
+            const centerX = taskChart.width / 2;
+            const centerY = taskChart.height / 2;
+            const radius = Math.min(centerX, centerY) - 20;
+
+            completedTasks.forEach((task, index) => {
+                const sliceAngle = (task.time / totalTime) * 2 * Math.PI;
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, startAngle, startAngle + sliceAngle);
+                ctx.closePath();
+                ctx.fillStyle = colors[index % colors.length];
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                const textAngle = startAngle + sliceAngle / 2;
+                const textX = centerX + (radius + 10) * Math.cos(textAngle);
+                const textY = centerY + (radius + 10) * Math.sin(textAngle);
+                ctx.fillStyle = '#333';
+                ctx.font = '12px Microsoft YaHei';
+                ctx.textAlign = 'center';
+                ctx.fillText(`${task.name} (${task.timeFormatted || '00:00'})`, textX, textY);
+
+                startAngle += sliceAngle;
+            });
+        }
+
+        // 窗口缩放重绘饼图
+        window.addEventListener('resize', () => {
+            if (completedTasks.length > 0 && currentMode === 'time') {
+                drawPieChart();
+            }
+            initCurrentDate();
+        });
+    </script>
+</body>
+</html>
